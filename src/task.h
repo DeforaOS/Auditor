@@ -1,6 +1,6 @@
 /* $Id$ */
 /* Copyright (c) 2010-2015 Pierre Pronchery <khorben@defora.org> */
-/* This file is part of DeforaOS Desktop Todo */
+/* This file is part of DeforaOS Desktop Auditor */
 /* All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -28,8 +28,8 @@
 
 
 
-#ifndef TODO_TASK_H
-# define TODO_TASK_H
+#ifndef AUDITOR_TASK_H
+# define AUDITOR_TASK_H
 
 # include <time.h>
 
@@ -68,4 +68,4 @@ int task_load(Task * task);
 int task_save(Task * task);
 int task_unlink(Task * task);
 
-#endif /* !TODO_TASK_H */
+#endif /* !AUDITOR_TASK_H */

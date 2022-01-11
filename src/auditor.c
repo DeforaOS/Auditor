@@ -1,7 +1,7 @@
 /* $Id$ */
 static char _copyright[] =
 "Copyright © 2009-2022 Pierre Pronchery <khorben@defora.org>";
-/* This file is part of DeforaOS Desktop Todo */
+/* This file is part of DeforaOS Desktop Auditor */
 static char const _license[] = "All rights reserved.\n"
 "\n"
 "Redistribution and use in source and binary forms, with or without\n"
@@ -46,26 +46,27 @@ static char const _license[] = "All rights reserved.\n"
 #include <Desktop.h>
 #include "priority.h"
 #include "taskedit.h"
-#include "todo.h"
+#include "auditor.h"
 #include "../config.h"
 #define _(string) gettext(string)
 #define N_(string) (string)
 
-#ifndef PROGNAME_TODO
-# define PROGNAME_TODO	"todo"
+#ifndef PROGNAME_AUDITOR
+# define PROGNAME_AUDITOR	"auditor"
 #endif
 
 
-/* Todo */
+/* Auditor */
 /* private */
 /* types */
-typedef enum _TodoColumn { TD_COL_TASK, TD_COL_DONE, TD_COL_TITLE, TD_COL_START,
-	TD_COL_DISPLAY_START, TD_COL_END, TD_COL_DISPLAY_END, TD_COL_PRIORITY,
-	TD_COL_DISPLAY_PRIORITY, TD_COL_CATEGORY } TodoColumn;
+typedef enum _AuditorColumn { TD_COL_TASK, TD_COL_DONE, TD_COL_TITLE,
+	TD_COL_START, TD_COL_DISPLAY_START, TD_COL_END, TD_COL_DISPLAY_END,
+	TD_COL_PRIORITY, TD_COL_DISPLAY_PRIORITY, TD_COL_CATEGORY
+} AuditorColumn;
 #define TD_COL_LAST TD_COL_CATEGORY
 #define TD_COL_COUNT (TD_COL_LAST + 1)
 
-struct _Todo
+struct _Auditor
 {
 	GtkWidget * window;
 	GtkWidget * widget;
@@ -74,7 +75,7 @@ struct _Todo
 	GtkListStore * priorities;
 	GtkTreeModel * filter;
 	GtkTreeModel * filter_sort;
-	TodoView filter_view;
+	AuditorView filter_view;
 	GtkWidget * view;
 	GtkTreeViewColumn * columns[TD_COL_COUNT];
 	GtkWidget * about;
@@ -82,40 +83,40 @@ struct _Todo
 
 
 /* prototypes */
-static int _todo_confirm(GtkWidget * window, char const * message);
-static gboolean _todo_get_iter(Todo * todo, GtkTreeIter * iter,
+static int _auditor_confirm(GtkWidget * window, char const * message);
+static gboolean _auditor_get_iter(Auditor * auditor, GtkTreeIter * iter,
 		GtkTreePath * path);
-static char * _todo_task_get_directory(void);
-static char * _todo_task_get_filename(char const * filename);
-static char * _todo_task_get_new_filename(void);
-static void _todo_task_save(Todo * todo, GtkTreeIter * iter);
+static char * _auditor_task_get_directory(void);
+static char * _auditor_task_get_filename(char const * filename);
+static char * _auditor_task_get_new_filename(void);
+static void _auditor_task_save(Auditor * auditor, GtkTreeIter * iter);
 
 /* callbacks */
 /* toolbar */
-static void _todo_on_new(gpointer data);
-static void _todo_on_edit(gpointer data);
-static void _todo_on_select_all(gpointer data);
-static void _todo_on_delete(gpointer data);
+static void _auditor_on_new(gpointer data);
+static void _auditor_on_edit(gpointer data);
+static void _auditor_on_select_all(gpointer data);
+static void _auditor_on_delete(gpointer data);
 #ifdef EMBEDDED
-static void _todo_on_preferences(gpointer data);
+static void _auditor_on_preferences(gpointer data);
 #endif
-static void _todo_on_view_as(gpointer data);
+static void _auditor_on_view_as(gpointer data);
 
 /* view */
-static void _todo_on_task_activated(gpointer data);
-static void _todo_on_task_cursor_changed(gpointer data);
-static void _todo_on_task_done_toggled(GtkCellRendererToggle * renderer,
+static void _auditor_on_task_activated(gpointer data);
+static void _auditor_on_task_cursor_changed(gpointer data);
+static void _auditor_on_task_done_toggled(GtkCellRendererToggle * renderer,
 		gchar * path, gpointer data);
-static void _todo_on_task_priority_edited(GtkCellRendererText * renderer,
+static void _auditor_on_task_priority_edited(GtkCellRendererText * renderer,
 		gchar * path, gchar * priority, gpointer data);
-static void _todo_on_task_title_edited(GtkCellRendererText * renderer,
+static void _auditor_on_task_title_edited(GtkCellRendererText * renderer,
 		gchar * path, gchar * title, gpointer data);
-static void _todo_on_view_all_tasks(gpointer data);
-static void _todo_on_view_completed_tasks(gpointer data);
-static void _todo_on_view_remaining_tasks(gpointer data);
+static void _auditor_on_view_all_tasks(gpointer data);
+static void _auditor_on_view_completed_tasks(gpointer data);
+static void _auditor_on_view_remaining_tasks(gpointer data);
 
-static gboolean _todo_on_filter_view(GtkTreeModel * model, GtkTreeIter * iter,
-		gpointer data);
+static gboolean _auditor_on_filter_view(GtkTreeModel * model,
+		GtkTreeIter * iter, gpointer data);
 
 
 /* constants */
@@ -125,12 +126,12 @@ static const struct
 	char const * title;
 	int sort;
 	GCallback callback;
-} _todo_columns[] =
+} _auditor_columns[] =
 {
 	{ TD_COL_DONE, N_("Done"), TD_COL_DONE, G_CALLBACK(
-			_todo_on_task_done_toggled) },
+			_auditor_on_task_done_toggled) },
 	{ TD_COL_TITLE, N_("Title"), TD_COL_TITLE, G_CALLBACK(
-			_todo_on_task_title_edited) },
+			_auditor_on_task_title_edited) },
 	{ TD_COL_DISPLAY_START, N_("Beginning"), TD_COL_START, NULL },
 	{ TD_COL_DISPLAY_END, N_("Completion"), TD_COL_END, NULL },
 	{ 0, NULL, 0, NULL }
@@ -146,22 +147,22 @@ static char const * _authors[] =
 /* toolbar */
 static DesktopToolbar _toolbar[] =
 {
-	{ N_("New task"), G_CALLBACK(_todo_on_new), GTK_STOCK_NEW, 0, 0, NULL },
-	{ N_("Edit task"), G_CALLBACK(_todo_on_edit), GTK_STOCK_EDIT, 0, 0,
+	{ N_("New task"), G_CALLBACK(_auditor_on_new), GTK_STOCK_NEW, 0, 0, NULL },
+	{ N_("Edit task"), G_CALLBACK(_auditor_on_edit), GTK_STOCK_EDIT, 0, 0,
 		NULL },
 	{ "", NULL, NULL, 0, 0, NULL },
 #if GTK_CHECK_VERSION(2, 10, 0)
-	{ N_("Select all"), G_CALLBACK(_todo_on_select_all),
+	{ N_("Select all"), G_CALLBACK(_auditor_on_select_all),
 		GTK_STOCK_SELECT_ALL, 0, 0, NULL },
 #else
-	{ N_("Select all"), G_CALLBACK(_todo_on_select_all), "edit-select-all",
+	{ N_("Select all"), G_CALLBACK(_auditor_on_select_all), "edit-select-all",
 		0, 0, NULL },
 #endif
-	{ N_("Delete task"), G_CALLBACK(_todo_on_delete), GTK_STOCK_DELETE, 0,
+	{ N_("Delete task"), G_CALLBACK(_auditor_on_delete), GTK_STOCK_DELETE, 0,
 		0, NULL },
 #ifdef EMBEDDED
 	{ "", NULL, NULL, 0, 0, NULL },
-	{ N_("Preferences"), G_CALLBACK(_todo_on_preferences),
+	{ N_("Preferences"), G_CALLBACK(_auditor_on_preferences),
 		GTK_STOCK_PREFERENCES, 0, 0, NULL },
 #endif
 	{ "", NULL, NULL, 0, 0, NULL },
@@ -171,59 +172,59 @@ static DesktopToolbar _toolbar[] =
 
 /* public */
 /* functions */
-/* todo_new */
-static void _new_view(Todo * todo);
+/* auditor_new */
+static void _new_view(Auditor * auditor);
 static gboolean _new_idle(gpointer data);
 
-Todo * todo_new(GtkWidget * window, GtkAccelGroup * group)
+Auditor * auditor_new(GtkWidget * window, GtkAccelGroup * group)
 {
-	Todo * todo;
+	Auditor * auditor;
 	GtkWidget * vbox;
 	GtkWidget * widget;
 	GtkToolItem * toolitem;
 	GtkWidget * menu;
 	GtkWidget * menuitem;
 
-	if((todo = object_new(sizeof(*todo))) == NULL)
+	if((auditor = object_new(sizeof(*auditor))) == NULL)
 		return NULL;
 	/* main window */
-	todo->window = window;
+	auditor->window = window;
 	vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
-	todo->widget = vbox;
+	auditor->widget = vbox;
 	/* toolbar */
-	widget = desktop_toolbar_create(_toolbar, todo, group);
+	widget = desktop_toolbar_create(_toolbar, auditor, group);
 	toolitem = gtk_menu_tool_button_new(NULL, _("View..."));
 	g_signal_connect_swapped(toolitem, "clicked", G_CALLBACK(
-				_todo_on_view_as), todo);
+				_auditor_on_view_as), auditor);
 	menu = gtk_menu_new();
 	menuitem = gtk_menu_item_new_with_label(_("All tasks"));
 	g_signal_connect_swapped(menuitem, "activate", G_CALLBACK(
-				_todo_on_view_all_tasks), todo);
+				_auditor_on_view_all_tasks), auditor);
 	gtk_menu_shell_append(GTK_MENU_SHELL(menu), menuitem);
 	menuitem = gtk_menu_item_new_with_label(_("Completed tasks"));
 	g_signal_connect_swapped(menuitem, "activate", G_CALLBACK(
-				_todo_on_view_completed_tasks), todo);
+				_auditor_on_view_completed_tasks), auditor);
 	gtk_menu_shell_append(GTK_MENU_SHELL(menu), menuitem);
 	menuitem = gtk_menu_item_new_with_label(_("Remaining tasks"));
 	g_signal_connect_swapped(menuitem, "activate", G_CALLBACK(
-				_todo_on_view_remaining_tasks), todo);
+				_auditor_on_view_remaining_tasks), auditor);
 	gtk_menu_shell_append(GTK_MENU_SHELL(menu), menuitem);
 	gtk_widget_show_all(menu);
 	gtk_menu_tool_button_set_menu(GTK_MENU_TOOL_BUTTON(toolitem), menu);
 	gtk_toolbar_insert(GTK_TOOLBAR(widget), toolitem, -1);
 	gtk_box_pack_start(GTK_BOX(vbox), widget, FALSE, TRUE, 0);
 	/* view */
-	todo->scrolled = gtk_scrolled_window_new(NULL, NULL);
-	gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(todo->scrolled),
+	auditor->scrolled = gtk_scrolled_window_new(NULL, NULL);
+	gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(auditor->scrolled),
 			GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
-	_new_view(todo);
-	gtk_box_pack_start(GTK_BOX(vbox), todo->scrolled, TRUE, TRUE, 0);
-	todo->about = NULL;
-	g_idle_add(_new_idle, todo);
-	return todo;
+	_new_view(auditor);
+	gtk_box_pack_start(GTK_BOX(vbox), auditor->scrolled, TRUE, TRUE, 0);
+	auditor->about = NULL;
+	g_idle_add(_new_idle, auditor);
+	return auditor;
 }
 
-static void _new_view(Todo * todo)
+static void _new_view(Auditor * auditor)
 {
 	size_t i;
 	GtkTreeIter iter;
@@ -231,7 +232,7 @@ static void _new_view(Todo * todo)
 	GtkCellRenderer * renderer;
 	GtkTreeViewColumn * column;
 
-	todo->store = gtk_list_store_new(TD_COL_COUNT,
+	auditor->store = gtk_list_store_new(TD_COL_COUNT,
 			G_TYPE_POINTER, /* task */
 			G_TYPE_BOOLEAN, /* done */
 			G_TYPE_STRING,	/* title */
@@ -242,181 +243,181 @@ static void _new_view(Todo * todo)
 			G_TYPE_UINT,	/* priority */
 			G_TYPE_STRING,	/* display priority */
 			G_TYPE_STRING);	/* category */
-	todo->priorities = gtk_list_store_new(2, G_TYPE_UINT, G_TYPE_STRING);
+	auditor->priorities = gtk_list_store_new(2, G_TYPE_UINT, G_TYPE_STRING);
 	for(i = 0; priorities[i].title != NULL; i++)
 	{
-		gtk_list_store_append(todo->priorities, &iter);
-		gtk_list_store_set(todo->priorities, &iter,
+		gtk_list_store_append(auditor->priorities, &iter);
+		gtk_list_store_set(auditor->priorities, &iter,
 				0, priorities[i].priority,
 				1, _(priorities[i].title), -1);
 	}
-	todo->filter = gtk_tree_model_filter_new(GTK_TREE_MODEL(todo->store),
+	auditor->filter = gtk_tree_model_filter_new(GTK_TREE_MODEL(auditor->store),
 			NULL);
-	todo->filter_view = TODO_VIEW_ALL_TASKS;
+	auditor->filter_view = AUDITOR_VIEW_ALL_TASKS;
 	gtk_tree_model_filter_set_visible_func(GTK_TREE_MODEL_FILTER(
-				todo->filter), _todo_on_filter_view, todo,
+				auditor->filter), _auditor_on_filter_view, auditor,
 			NULL);
-	todo->filter_sort = gtk_tree_model_sort_new_with_model(todo->filter);
-	todo->view = gtk_tree_view_new_with_model(GTK_TREE_MODEL(
-				todo->filter_sort));
-	gtk_tree_view_set_rules_hint(GTK_TREE_VIEW(todo->view), TRUE);
-	if((sel = gtk_tree_view_get_selection(GTK_TREE_VIEW(todo->view)))
+	auditor->filter_sort = gtk_tree_model_sort_new_with_model(auditor->filter);
+	auditor->view = gtk_tree_view_new_with_model(GTK_TREE_MODEL(
+				auditor->filter_sort));
+	gtk_tree_view_set_rules_hint(GTK_TREE_VIEW(auditor->view), TRUE);
+	if((sel = gtk_tree_view_get_selection(GTK_TREE_VIEW(auditor->view)))
 			!= NULL)
 		gtk_tree_selection_set_mode(sel, GTK_SELECTION_MULTIPLE);
-	g_signal_connect_swapped(todo->view, "cursor-changed", G_CALLBACK(
-				_todo_on_task_cursor_changed), todo);
-	g_signal_connect_swapped(todo->view, "row-activated", G_CALLBACK(
-				_todo_on_task_activated), todo);
+	g_signal_connect_swapped(auditor->view, "cursor-changed", G_CALLBACK(
+				_auditor_on_task_cursor_changed), auditor);
+	g_signal_connect_swapped(auditor->view, "row-activated", G_CALLBACK(
+				_auditor_on_task_activated), auditor);
 	/* columns */
-	memset(&todo->columns, 0, sizeof(todo->columns));
+	memset(&auditor->columns, 0, sizeof(auditor->columns));
 	/* done column */
 	renderer = gtk_cell_renderer_toggle_new();
 	g_signal_connect(renderer, "toggled", G_CALLBACK(
-				_todo_columns[0].callback), todo);
+				_auditor_columns[0].callback), auditor);
 	column = gtk_tree_view_column_new_with_attributes(
-			_(_todo_columns[0].title), renderer, "active",
-			_todo_columns[0].col, NULL);
-	todo->columns[TD_COL_DONE] = column;
+			_(_auditor_columns[0].title), renderer, "active",
+			_auditor_columns[0].col, NULL);
+	auditor->columns[TD_COL_DONE] = column;
 	gtk_tree_view_column_set_sizing(GTK_TREE_VIEW_COLUMN(column),
 			GTK_TREE_VIEW_COLUMN_FIXED);
 	gtk_tree_view_column_set_fixed_width(GTK_TREE_VIEW_COLUMN(column), 50);
 	gtk_tree_view_column_set_sort_column_id(column, TD_COL_DONE);
-	gtk_tree_view_append_column(GTK_TREE_VIEW(todo->view), column);
+	gtk_tree_view_append_column(GTK_TREE_VIEW(auditor->view), column);
 	/* other columns */
-	for(i = 1; _todo_columns[i].title != NULL; i++)
+	for(i = 1; _auditor_columns[i].title != NULL; i++)
 	{
 		renderer = gtk_cell_renderer_text_new();
-		if(_todo_columns[i].callback != NULL)
+		if(_auditor_columns[i].callback != NULL)
 		{
 			g_object_set(G_OBJECT(renderer), "editable", TRUE,
 					"ellipsize", PANGO_ELLIPSIZE_END, NULL);
 			g_signal_connect(renderer, "edited", G_CALLBACK(
-						_todo_columns[i].callback),
-					todo);
+						_auditor_columns[i].callback),
+					auditor);
 		}
 		column = gtk_tree_view_column_new_with_attributes(
-				_(_todo_columns[i].title), renderer, "text",
-				_todo_columns[i].col, NULL);
-		todo->columns[_todo_columns[i].col] = column;
+				_(_auditor_columns[i].title), renderer, "text",
+				_auditor_columns[i].col, NULL);
+		auditor->columns[_auditor_columns[i].col] = column;
 #if GTK_CHECK_VERSION(2, 4, 0)
 		gtk_tree_view_column_set_expand(column, TRUE);
 #endif
 		gtk_tree_view_column_set_resizable(column, TRUE);
 		gtk_tree_view_column_set_sort_column_id(column,
-				_todo_columns[i].sort);
-		gtk_tree_view_append_column(GTK_TREE_VIEW(todo->view), column);
+				_auditor_columns[i].sort);
+		gtk_tree_view_append_column(GTK_TREE_VIEW(auditor->view), column);
 	}
 	/* priority column */
 	renderer = gtk_cell_renderer_combo_new();
 	g_object_set(renderer, "ellipsize", PANGO_ELLIPSIZE_END,
-			"model", todo->priorities, "text-column", 1,
+			"model", auditor->priorities, "text-column", 1,
 			"editable", TRUE, NULL);
 	g_signal_connect(renderer, "edited", G_CALLBACK(
-				_todo_on_task_priority_edited), todo);
+				_auditor_on_task_priority_edited), auditor);
 	column = gtk_tree_view_column_new_with_attributes(_("Priority"),
 			renderer, "text", TD_COL_DISPLAY_PRIORITY, NULL);
-	todo->columns[TD_COL_DISPLAY_PRIORITY] = column;
+	auditor->columns[TD_COL_DISPLAY_PRIORITY] = column;
 #if GTK_CHECK_VERSION(2, 4, 0)
 	gtk_tree_view_column_set_expand(column, TRUE);
 #endif
 	gtk_tree_view_column_set_resizable(column, TRUE);
 	gtk_tree_view_column_set_sort_column_id(column, TD_COL_PRIORITY);
-	gtk_container_add(GTK_CONTAINER(todo->scrolled), todo->view);
-	gtk_tree_view_append_column(GTK_TREE_VIEW(todo->view), column);
+	gtk_container_add(GTK_CONTAINER(auditor->scrolled), auditor->view);
+	gtk_tree_view_append_column(GTK_TREE_VIEW(auditor->view), column);
 }
 
 static gboolean _new_idle(gpointer data)
 {
-	Todo * todo = data;
+	Auditor * auditor = data;
 
-	todo_task_reload_all(todo);
+	auditor_task_reload_all(auditor);
 	return FALSE;
 }
 
 
-/* todo_delete */
-void todo_delete(Todo * todo)
+/* auditor_delete */
+void auditor_delete(Auditor * auditor)
 {
-	todo_task_save_all(todo);
-	todo_task_remove_all(todo);
-	free(todo);
-	object_delete(todo);
+	auditor_task_save_all(auditor);
+	auditor_task_remove_all(auditor);
+	free(auditor);
+	object_delete(auditor);
 }
 
 
 /* accessors */
-/* todo_get_view */
-TodoView todo_get_view(Todo * todo)
+/* auditor_get_view */
+AuditorView auditor_get_view(Auditor * auditor)
 {
-	return todo->filter_view;
+	return auditor->filter_view;
 }
 
 
-/* todo_get_widget */
-GtkWidget * todo_get_widget(Todo * todo)
+/* auditor_get_widget */
+GtkWidget * auditor_get_widget(Auditor * auditor)
 {
-	return todo->widget;
+	return auditor->widget;
 }
 
 
-/* todo_set_view */
-void todo_set_view(Todo * todo, TodoView view)
+/* auditor_set_view */
+void auditor_set_view(Auditor * auditor, AuditorView view)
 {
-	todo->filter_view = view;
-	gtk_tree_model_filter_refilter(GTK_TREE_MODEL_FILTER(todo->filter));
+	auditor->filter_view = view;
+	gtk_tree_model_filter_refilter(GTK_TREE_MODEL_FILTER(auditor->filter));
 }
 
 
 /* useful */
-/* todo_about */
+/* auditor_about */
 static gboolean _about_on_closex(gpointer data);
 
-void todo_about(Todo * todo)
+void auditor_about(Auditor * auditor)
 {
-	if(todo->about != NULL)
+	if(auditor->about != NULL)
 	{
-		gtk_widget_show(todo->about);
+		gtk_widget_show(auditor->about);
 		return;
 	}
-	todo->about = desktop_about_dialog_new();
-	gtk_window_set_transient_for(GTK_WINDOW(todo->about),
-			GTK_WINDOW(todo->window));
-	desktop_about_dialog_set_authors(todo->about, _authors);
-	desktop_about_dialog_set_comments(todo->about,
-			_("TODO-list manager for the DeforaOS desktop"));
-	desktop_about_dialog_set_copyright(todo->about, _copyright);
-	desktop_about_dialog_set_logo_icon_name(todo->about, "todo");
-	desktop_about_dialog_set_license(todo->about, _license);
-	desktop_about_dialog_set_program_name(todo->about, PACKAGE);
-	desktop_about_dialog_set_translator_credits(todo->about,
+	auditor->about = desktop_about_dialog_new();
+	gtk_window_set_transient_for(GTK_WINDOW(auditor->about),
+			GTK_WINDOW(auditor->window));
+	desktop_about_dialog_set_authors(auditor->about, _authors);
+	desktop_about_dialog_set_comments(auditor->about,
+			_("Audit log manager for the DeforaOS desktop"));
+	desktop_about_dialog_set_copyright(auditor->about, _copyright);
+	desktop_about_dialog_set_logo_icon_name(auditor->about, "auditor");
+	desktop_about_dialog_set_license(auditor->about, _license);
+	desktop_about_dialog_set_program_name(auditor->about, PACKAGE);
+	desktop_about_dialog_set_translator_credits(auditor->about,
 			_("translator-credits"));
-	desktop_about_dialog_set_version(todo->about, VERSION);
-	desktop_about_dialog_set_website(todo->about,
+	desktop_about_dialog_set_version(auditor->about, VERSION);
+	desktop_about_dialog_set_website(auditor->about,
 			"https://www.defora.org/");
-	g_signal_connect_swapped(todo->about, "delete-event", G_CALLBACK(
-				_about_on_closex), todo);
-	gtk_widget_show(todo->about);
+	g_signal_connect_swapped(auditor->about, "delete-event", G_CALLBACK(
+				_about_on_closex), auditor);
+	gtk_widget_show(auditor->about);
 }
 
 static gboolean _about_on_closex(gpointer data)
 {
-	Todo * todo = data;
+	Auditor * auditor = data;
 
-	gtk_widget_hide(todo->about);
+	gtk_widget_hide(auditor->about);
 	return TRUE;
 }
 
 
-/* todo_error */
+/* auditor_error */
 static int _error_text(char const * message, int ret);
 
-int todo_error(Todo * todo, char const * message, int ret)
+int auditor_error(Auditor * auditor, char const * message, int ret)
 {
 	GtkWidget * dialog;
 
-	if(todo == NULL)
+	if(auditor == NULL)
 		return _error_text(message, ret);
-	dialog = gtk_message_dialog_new(GTK_WINDOW(todo->window),
+	dialog = gtk_message_dialog_new(GTK_WINDOW(auditor->window),
 			GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT,
 			GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "%s",
 #if GTK_CHECK_VERSION(2, 8, 0)
@@ -433,23 +434,23 @@ int todo_error(Todo * todo, char const * message, int ret)
 
 static int _error_text(char const * message, int ret)
 {
-	fputs(PROGNAME_TODO ": ", stderr);
+	fputs(PROGNAME_AUDITOR ": ", stderr);
 	fputs(message, stderr);
 	fputc('\n', stderr);
 	return ret;
 }
 
 
-/* todo_show_preferences */
-void todo_show_preferences(Todo * todo, gboolean show)
+/* auditor_show_preferences */
+void auditor_show_preferences(Auditor * auditor, gboolean show)
 {
 	/* FIXME implement */
 }
 
 
 /* tasks */
-/* todo_task_add */
-Task * todo_task_add(Todo * todo, Task * task)
+/* auditor_task_add */
+Task * auditor_task_add(Auditor * auditor, Task * task)
 {
 	GtkTreeIter iter;
 	char * filename;
@@ -459,16 +460,16 @@ Task * todo_task_add(Todo * todo, Task * task)
 	time_t end;
 	char completion[32] = "";
 	char const * priority;
-	TodoPriority tp = TODO_PRIORITY_UNKNOWN;
+	AuditorPriority tp = AUDITOR_PRIORITY_UNKNOWN;
 	size_t i;
 
 	if(task == NULL)
 	{
 		if((task = task_new()) == NULL)
 			return NULL;
-		if((filename = _todo_task_get_new_filename()) == NULL)
+		if((filename = _auditor_task_get_new_filename()) == NULL)
 		{
-			todo_error(todo, error_get(NULL), 0);
+			auditor_error(auditor, error_get(NULL), 0);
 			task_delete(task);
 			return NULL;
 		}
@@ -477,7 +478,7 @@ Task * todo_task_add(Todo * todo, Task * task)
 		task_set_title(task, _("New task"));
 		task_save(task);
 	}
-	gtk_list_store_insert(todo->store, &iter, 0);
+	gtk_list_store_insert(auditor->store, &iter, 0);
 	if((start = task_get_start(task)) != 0)
 	{
 		localtime_r(&start, &t);
@@ -495,7 +496,7 @@ Task * todo_task_add(Todo * todo, Task * task)
 			tp = priorities[i].priority;
 			break;
 		}
-	gtk_list_store_set(todo->store, &iter, TD_COL_TASK, task,
+	gtk_list_store_set(auditor->store, &iter, TD_COL_TASK, task,
 			TD_COL_DONE, task_get_done(task) > 0 ? TRUE : FALSE,
 			TD_COL_TITLE, task_get_title(task),
 			TD_COL_START, start,
@@ -508,26 +509,26 @@ Task * todo_task_add(Todo * todo, Task * task)
 }
 
 
-/* todo_task_delete_selected */
+/* auditor_task_delete_selected */
 static void _task_delete_selected_foreach(GtkTreeRowReference * reference,
-		Todo * todo);
+		Auditor * auditor);
 
-void todo_task_delete_selected(Todo * todo)
+void auditor_task_delete_selected(Auditor * auditor)
 {
 	GtkTreeSelection * treesel;
 	GList * selected;
-	GtkTreeModel * model = GTK_TREE_MODEL(todo->store);
+	GtkTreeModel * model = GTK_TREE_MODEL(auditor->store);
 	GtkTreeRowReference * reference;
 	GList * s;
 	GtkTreePath * path;
 
-	if((treesel = gtk_tree_view_get_selection(GTK_TREE_VIEW(todo->view)))
+	if((treesel = gtk_tree_view_get_selection(GTK_TREE_VIEW(auditor->view)))
 			== NULL)
 		return;
 	if((selected = gtk_tree_selection_get_selected_rows(treesel, NULL))
 			== NULL)
 		return;
-	if(_todo_confirm(todo->window, _("Are you sure you want to delete the"
+	if(_auditor_confirm(auditor->window, _("Are you sure you want to delete the"
 					" selected task(s)?")) != 0)
 		return;
 	for(s = g_list_first(selected); s != NULL; s = g_list_next(s))
@@ -538,14 +539,14 @@ void todo_task_delete_selected(Todo * todo)
 		s->data = reference;
 		gtk_tree_path_free(path);
 	}
-	g_list_foreach(selected, (GFunc)_task_delete_selected_foreach, todo);
+	g_list_foreach(selected, (GFunc)_task_delete_selected_foreach, auditor);
 	g_list_free(selected);
 }
 
 static void _task_delete_selected_foreach(GtkTreeRowReference * reference,
-		Todo * todo)
+		Auditor * auditor)
 {
-	GtkTreeModel * model = GTK_TREE_MODEL(todo->store);
+	GtkTreeModel * model = GTK_TREE_MODEL(auditor->store);
 	GtkTreePath * path;
 	GtkTreeIter iter;
 	Task * task;
@@ -554,18 +555,18 @@ static void _task_delete_selected_foreach(GtkTreeRowReference * reference,
 		return;
 	if((path = gtk_tree_row_reference_get_path(reference)) == NULL)
 		return;
-	if(_todo_get_iter(todo, &iter, path) == TRUE)
+	if(_auditor_get_iter(auditor, &iter, path) == TRUE)
 	{
 		gtk_tree_model_get(model, &iter, TD_COL_TASK, &task, -1);
 		task_unlink(task);
 		task_delete(task);
 	}
-	gtk_list_store_remove(todo->store, &iter);
+	gtk_list_store_remove(auditor->store, &iter);
 	gtk_tree_path_free(path);
 }
 
 
-/* todo_task_cursor_changed */
+/* auditor_task_cursor_changed */
 static void _task_cursor_changed_date_end(GtkWidget * widget, gpointer data);
 static void _task_cursor_changed_date_start(GtkWidget * widget, gpointer data);
 static void _task_cursor_changed_hour_end(GtkWidget * widget, gpointer data);
@@ -575,9 +576,9 @@ static void _task_cursor_changed_min_start(GtkWidget * widget, gpointer data);
 static void _task_cursor_changed_sec_end(GtkWidget * widget, gpointer data);
 static void _task_cursor_changed_sec_start(GtkWidget * widget, gpointer data);
 
-void todo_task_cursor_changed(Todo * todo)
+void auditor_task_cursor_changed(Auditor * auditor)
 {
-	GtkTreeModel * model = GTK_TREE_MODEL(todo->store);
+	GtkTreeModel * model = GTK_TREE_MODEL(auditor->store);
 	GtkTreePath * path = NULL;
 	GtkTreeViewColumn * column = NULL;
 	GtkTreeIter iter;
@@ -594,7 +595,7 @@ void todo_task_cursor_changed(Todo * todo)
 	GtkWidget * image;
 	GtkWidget * calendar;
 
-	gtk_tree_view_get_cursor(GTK_TREE_VIEW(todo->view), &path, &column);
+	gtk_tree_view_get_cursor(GTK_TREE_VIEW(auditor->view), &path, &column);
 	if(path == NULL)
 		return;
 	gtk_tree_model_get_iter(model, &iter, path);
@@ -608,7 +609,7 @@ void todo_task_cursor_changed(Todo * todo)
 		gtk_container_set_border_width(GTK_CONTAINER(popup), 4);
 		gtk_window_set_modal(GTK_WINDOW(popup), TRUE);
 		gtk_window_set_transient_for(GTK_WINDOW(popup), GTK_WINDOW(
-					todo->window));
+					auditor->window));
 		vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 4);
 		hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 4);
 		if((tim = (id == TD_COL_START) ? task_get_start(task)
@@ -664,9 +665,9 @@ void todo_task_cursor_changed(Todo * todo)
 					: _task_cursor_changed_date_end), task);
 		gtk_box_pack_start(GTK_BOX(vbox), calendar, FALSE, TRUE, 0);
 		gtk_container_add(GTK_CONTAINER(popup), vbox);
-		gtk_tree_view_get_cell_area(GTK_TREE_VIEW(todo->view), path,
+		gtk_tree_view_get_cell_area(GTK_TREE_VIEW(auditor->view), path,
 				column, &rect);
-		gtk_window_get_position(GTK_WINDOW(todo->window), &rect.width,
+		gtk_window_get_position(GTK_WINDOW(auditor->window), &rect.width,
 				&rect.height);
 		gtk_window_move(GTK_WINDOW(popup), rect.width + rect.x,
 				rect.height + rect.y);
@@ -805,18 +806,18 @@ static void _task_cursor_changed_sec_start(GtkWidget * widget, gpointer data)
 }
 
 
-/* todo_task_edit */
-void todo_task_edit(Todo * todo)
+/* auditor_task_edit */
+void auditor_task_edit(Auditor * auditor)
 {
 	GtkTreeSelection * treesel;
 	GList * selected;
-	GtkTreeModel * model = GTK_TREE_MODEL(todo->store);
+	GtkTreeModel * model = GTK_TREE_MODEL(auditor->store);
 	GList * s;
 	GtkTreePath * path;
 	GtkTreeIter iter;
 	Task * task;
 
-	if((treesel = gtk_tree_view_get_selection(GTK_TREE_VIEW(todo->view)))
+	if((treesel = gtk_tree_view_get_selection(GTK_TREE_VIEW(auditor->view)))
 			== NULL)
 		return;
 	if((selected = gtk_tree_selection_get_selected_rows(treesel, NULL))
@@ -826,18 +827,18 @@ void todo_task_edit(Todo * todo)
 	{
 		if((path = s->data) == NULL)
 			continue;
-		if(_todo_get_iter(todo, &iter, path) != TRUE)
+		if(_auditor_get_iter(auditor, &iter, path) != TRUE)
 			continue;
 		gtk_tree_model_get(model, &iter, TD_COL_TASK, &task, -1);
 		if(task != NULL)
-			taskedit_new(todo, task);
+			taskedit_new(auditor, task);
 	}
 	g_list_free(selected);
 }
 
 
-/* todo_task_reload_all */
-int todo_task_reload_all(Todo * todo)
+/* auditor_task_reload_all */
+int auditor_task_reload_all(Auditor * auditor)
 {
 	int ret = 0;
 	char * filename;
@@ -845,33 +846,33 @@ int todo_task_reload_all(Todo * todo)
 	struct dirent * de;
 	Task * task;
 
-	if((filename = _todo_task_get_directory()) == NULL)
-		return todo_error(todo, error_get(NULL), 1);
+	if((filename = _auditor_task_get_directory()) == NULL)
+		return auditor_error(auditor, error_get(NULL), 1);
 	if((dir = opendir(filename)) == NULL)
 	{
 		if(errno != ENOENT)
 		{
 			error_set("%s: %s", filename, strerror(errno));
-			ret = todo_error(todo, error_get(NULL), 1);
+			ret = auditor_error(auditor, error_get(NULL), 1);
 		}
 	}
 	else
 	{
-		todo_task_remove_all(todo);
+		auditor_task_remove_all(auditor);
 		while((de = readdir(dir)) != NULL)
 		{
 			if(strncmp(de->d_name, "task.", 5) != 0)
 				continue;
 			free(filename);
-			if((filename = _todo_task_get_filename(de->d_name))
+			if((filename = _auditor_task_get_filename(de->d_name))
 					== NULL)
 				continue; /* XXX report error */
 			if((task = task_new_from_file(filename)) == NULL)
 			{
-				todo_error(NULL, error_get(NULL), 1);
+				auditor_error(NULL, error_get(NULL), 1);
 				continue;
 			}
-			if(todo_task_add(todo, task) == NULL)
+			if(auditor_task_add(auditor, task) == NULL)
 			{
 				task_delete(task);
 				continue; /* XXX report error */
@@ -883,10 +884,10 @@ int todo_task_reload_all(Todo * todo)
 }
 
 
-/* todo_task_remove_all */
-void todo_task_remove_all(Todo * todo)
+/* auditor_task_remove_all */
+void auditor_task_remove_all(Auditor * auditor)
 {
-	GtkTreeModel * model = GTK_TREE_MODEL(todo->store);
+	GtkTreeModel * model = GTK_TREE_MODEL(auditor->store);
 	GtkTreeIter iter;
 	gboolean valid;
 	Task * task;
@@ -897,44 +898,44 @@ void todo_task_remove_all(Todo * todo)
 		gtk_tree_model_get(model, &iter, TD_COL_TASK, &task, -1);
 		task_delete(task);
 	}
-	gtk_list_store_clear(todo->store);
+	gtk_list_store_clear(auditor->store);
 }
 
 
-/* todo_task_save_all */
-void todo_task_save_all(Todo * todo)
+/* auditor_task_save_all */
+void auditor_task_save_all(Auditor * auditor)
 {
-	GtkTreeModel * model = GTK_TREE_MODEL(todo->store);
+	GtkTreeModel * model = GTK_TREE_MODEL(auditor->store);
 	GtkTreeIter iter;
 	gboolean valid;
 
 	valid = gtk_tree_model_get_iter_first(model, &iter);
 	for(; valid == TRUE; valid = gtk_tree_model_iter_next(model, &iter))
-		_todo_task_save(todo, &iter);
+		_auditor_task_save(auditor, &iter);
 }
 
 
-/* todo_task_select_all */
-void todo_task_select_all(Todo * todo)
+/* auditor_task_select_all */
+void auditor_task_select_all(Auditor * auditor)
 {
 	GtkTreeSelection * sel;
 
-	sel = gtk_tree_view_get_selection(GTK_TREE_VIEW(todo->view));
+	sel = gtk_tree_view_get_selection(GTK_TREE_VIEW(auditor->view));
 	gtk_tree_selection_select_all(sel);
 }
 
 
-/* todo_task_set_priority */
-void todo_task_set_priority(Todo * todo, GtkTreePath * path,
+/* auditor_task_set_priority */
+void auditor_task_set_priority(Auditor * auditor, GtkTreePath * path,
 		char const * priority)
 {
-	GtkTreeModel * model = GTK_TREE_MODEL(todo->store);
+	GtkTreeModel * model = GTK_TREE_MODEL(auditor->store);
 	GtkTreeIter iter;
 	Task * task;
 	size_t i;
-	TodoPriority tp = TODO_PRIORITY_UNKNOWN;
+	AuditorPriority tp = AUDITOR_PRIORITY_UNKNOWN;
 
-	_todo_get_iter(todo, &iter, path);
+	_auditor_get_iter(auditor, &iter, path);
 	gtk_tree_model_get(model, &iter, TD_COL_TASK, &task, -1);
 	task_set_priority(task, priority);
 	for(i = 0; priorities[i].title != NULL; i++)
@@ -943,29 +944,29 @@ void todo_task_set_priority(Todo * todo, GtkTreePath * path,
 			tp = priorities[i].priority;
 			break;
 		}
-	gtk_list_store_set(todo->store, &iter, TD_COL_PRIORITY, tp,
+	gtk_list_store_set(auditor->store, &iter, TD_COL_PRIORITY, tp,
 			TD_COL_DISPLAY_PRIORITY, priority, -1);
 	task_save(task);
 }
 
 
-/* todo_task_set_title */
-void todo_task_set_title(Todo * todo, GtkTreePath * path, char const * title)
+/* auditor_task_set_title */
+void auditor_task_set_title(Auditor * auditor, GtkTreePath * path, char const * title)
 {
-	GtkTreeModel * model = GTK_TREE_MODEL(todo->store);
+	GtkTreeModel * model = GTK_TREE_MODEL(auditor->store);
 	GtkTreeIter iter;
 	Task * task;
 
-	_todo_get_iter(todo, &iter, path);
+	_auditor_get_iter(auditor, &iter, path);
 	gtk_tree_model_get(model, &iter, TD_COL_TASK, &task, -1);
 	task_set_title(task, title);
-	gtk_list_store_set(todo->store, &iter, TD_COL_TITLE, title, -1);
+	gtk_list_store_set(auditor->store, &iter, TD_COL_TITLE, title, -1);
 	task_save(task);
 }
 
 
-/* todo_task_toggle_done */
-void todo_task_toggle_done(Todo * todo, GtkTreePath * path)
+/* auditor_task_toggle_done */
+void auditor_task_toggle_done(Auditor * auditor, GtkTreePath * path)
 {
 	GtkTreeIter iter;
 	Task * task;
@@ -974,8 +975,8 @@ void todo_task_toggle_done(Todo * todo, GtkTreePath * path)
 	struct tm t;
 	char completion[32] = "";
 
-	_todo_get_iter(todo, &iter, path);
-	gtk_tree_model_get(GTK_TREE_MODEL(todo->store), &iter,
+	_auditor_get_iter(auditor, &iter, path);
+	gtk_tree_model_get(GTK_TREE_MODEL(auditor->store), &iter,
 			TD_COL_TASK, &task, TD_COL_DONE, &done, -1);
 	done = !done;
 	task_set_done(task, done);
@@ -984,7 +985,7 @@ void todo_task_toggle_done(Todo * todo, GtkTreePath * path)
 		localtime_r(&end, &t);
 		strftime(completion, sizeof(completion), "%c", &t);
 	}
-	gtk_list_store_set(todo->store, &iter, TD_COL_DONE, done,
+	gtk_list_store_set(auditor->store, &iter, TD_COL_DONE, done,
 			TD_COL_END, end, TD_COL_DISPLAY_END, completion, -1);
 	task_save(task);
 }
@@ -992,8 +993,8 @@ void todo_task_toggle_done(Todo * todo, GtkTreePath * path)
 
 /* private */
 /* functions */
-/* todo_confirm */
-static int _todo_confirm(GtkWidget * window, char const * message)
+/* auditor_confirm */
+static int _auditor_confirm(GtkWidget * window, char const * message)
 {
 	GtkWidget * dialog;
 	int res;
@@ -1016,29 +1017,29 @@ static int _todo_confirm(GtkWidget * window, char const * message)
 }
 
 
-/* todo_get_iter */
-static gboolean _todo_get_iter(Todo * todo, GtkTreeIter * iter,
+/* auditor_get_iter */
+static gboolean _auditor_get_iter(Auditor * auditor, GtkTreeIter * iter,
 		GtkTreePath * path)
 {
 	GtkTreeIter p;
 
-	if(gtk_tree_model_get_iter(GTK_TREE_MODEL(todo->filter_sort), iter,
+	if(gtk_tree_model_get_iter(GTK_TREE_MODEL(auditor->filter_sort), iter,
 				path) == FALSE)
 		return FALSE;
 	gtk_tree_model_sort_convert_iter_to_child_iter(GTK_TREE_MODEL_SORT(
-				todo->filter_sort), &p, iter);
+				auditor->filter_sort), &p, iter);
 	gtk_tree_model_filter_convert_iter_to_child_iter(GTK_TREE_MODEL_FILTER(
-				todo->filter), iter, &p);
+				auditor->filter), iter, &p);
 	return TRUE;
 }
 
 
-/* todo_task_get_directory */
-static char * _todo_task_get_directory(void)
+/* auditor_task_get_directory */
+static char * _auditor_task_get_directory(void)
 {
 	char const * homedir;
 	size_t len;
-	char const directory[] = ".todo";
+	char const directory[] = ".auditor";
 	char * filename;
 
 	if((homedir = getenv("HOME")) == NULL)
@@ -1051,12 +1052,12 @@ static char * _todo_task_get_directory(void)
 }
 
 
-/* todo_task_get_filename */
-static char * _todo_task_get_filename(char const * filenam)
+/* auditor_task_get_filename */
+static char * _auditor_task_get_filename(char const * filenam)
 {
 	char const * homedir;
 	int len;
-	char const directory[] = ".todo";
+	char const directory[] = ".auditor";
 	char * pathname;
 
 	if((homedir = getenv("HOME")) == NULL)
@@ -1069,12 +1070,12 @@ static char * _todo_task_get_filename(char const * filenam)
 }
 
 
-/* todo_task_get_new_filename */
-static char * _todo_task_get_new_filename(void)
+/* auditor_task_get_new_filename */
+static char * _auditor_task_get_new_filename(void)
 {
 	char const * homedir;
 	int len;
-	char const directory[] = ".todo";
+	char const directory[] = ".auditor";
 	char template[] = "task.XXXXXX";
 	char * filename;
 	int fd;
@@ -1099,10 +1100,10 @@ static char * _todo_task_get_new_filename(void)
 }
 
 
-/* todo_task_save */
-static void _todo_task_save(Todo * todo, GtkTreeIter * iter)
+/* auditor_task_save */
+static void _auditor_task_save(Auditor * auditor, GtkTreeIter * iter)
 {
-	GtkTreeModel * model = GTK_TREE_MODEL(todo->store);
+	GtkTreeModel * model = GTK_TREE_MODEL(auditor->store);
 	Task * task;
 
 	gtk_tree_model_get(model, iter, TD_COL_TASK, &task, -1);
@@ -1111,171 +1112,171 @@ static void _todo_task_save(Todo * todo, GtkTreeIter * iter)
 
 
 /* callbacks */
-/* todo_on_view_all_tasks */
-static void _todo_on_view_all_tasks(gpointer data)
+/* auditor_on_view_all_tasks */
+static void _auditor_on_view_all_tasks(gpointer data)
 {
-	Todo * todo = data;
+	Auditor * auditor = data;
 
-	todo_set_view(todo, TODO_VIEW_ALL_TASKS);
+	auditor_set_view(auditor, AUDITOR_VIEW_ALL_TASKS);
 }
 
 
-/* todo_on_view_completed_tasks */
-static void _todo_on_view_completed_tasks(gpointer data)
+/* auditor_on_view_completed_tasks */
+static void _auditor_on_view_completed_tasks(gpointer data)
 {
-	Todo * todo = data;
+	Auditor * auditor = data;
 
-	todo_set_view(todo, TODO_VIEW_COMPLETED_TASKS);
+	auditor_set_view(auditor, AUDITOR_VIEW_COMPLETED_TASKS);
 }
 
 
-/* todo_on_view_remaining_tasks */
-static void _todo_on_view_remaining_tasks(gpointer data)
+/* auditor_on_view_remaining_tasks */
+static void _auditor_on_view_remaining_tasks(gpointer data)
 {
-	Todo * todo = data;
+	Auditor * auditor = data;
 
-	todo_set_view(todo, TODO_VIEW_REMAINING_TASKS);
+	auditor_set_view(auditor, AUDITOR_VIEW_REMAINING_TASKS);
 }
 
 
 /* toolbar */
-/* todo_on_delete */
-static void _todo_on_delete(gpointer data)
+/* auditor_on_delete */
+static void _auditor_on_delete(gpointer data)
 {
-	Todo * todo = data;
+	Auditor * auditor = data;
 
-	todo_task_delete_selected(todo);
+	auditor_task_delete_selected(auditor);
 }
 
 
-/* todo_on_edit */
-static void _todo_on_edit(gpointer data)
+/* auditor_on_edit */
+static void _auditor_on_edit(gpointer data)
 {
-	Todo * todo = data;
+	Auditor * auditor = data;
 
-	todo_task_edit(todo);
+	auditor_task_edit(auditor);
 }
 
 
-/* todo_on_new */
-static void _todo_on_new(gpointer data)
+/* auditor_on_new */
+static void _auditor_on_new(gpointer data)
 {
-	Todo * todo = data;
+	Auditor * auditor = data;
 
-	todo_task_add(todo, NULL);
+	auditor_task_add(auditor, NULL);
 }
 
 
 #ifdef EMBEDDED
-/* todo_on_preferences */
-static void _todo_on_preferences(gpointer data)
+/* auditor_on_preferences */
+static void _auditor_on_preferences(gpointer data)
 {
-	Todo * todo = data;
+	Auditor * auditor = data;
 
-	todo_show_preferences(todo, TRUE);
+	auditor_show_preferences(auditor, TRUE);
 }
 #endif
 
 
-/* todo_on_view_as */
-static void _todo_on_view_as(gpointer data)
+/* auditor_on_view_as */
+static void _auditor_on_view_as(gpointer data)
 {
-	Todo * todo = data;
-	TodoView view;
+	Auditor * auditor = data;
+	AuditorView view;
 
-	view = todo_get_view(todo);
-	view = (view + 1) % TODO_VIEW_COUNT;
-	todo_set_view(todo, view);
+	view = auditor_get_view(auditor);
+	view = (view + 1) % AUDITOR_VIEW_COUNT;
+	auditor_set_view(auditor, view);
 }
 
 
-/* todo_on_select_all */
-static void _todo_on_select_all(gpointer data)
+/* auditor_on_select_all */
+static void _auditor_on_select_all(gpointer data)
 {
-	Todo * todo = data;
+	Auditor * auditor = data;
 
-	todo_task_select_all(todo);
+	auditor_task_select_all(auditor);
 }
 
 
 /* view */
-/* todo_on_task_activated */
-static void _todo_on_task_activated(gpointer data)
+/* auditor_on_task_activated */
+static void _auditor_on_task_activated(gpointer data)
 {
-	Todo * todo = data;
+	Auditor * auditor = data;
 
-	todo_task_edit(todo);
+	auditor_task_edit(auditor);
 }
 
 
-/* todo_on_task_cursor_changed */
-static void _todo_on_task_cursor_changed(gpointer data)
+/* auditor_on_task_cursor_changed */
+static void _auditor_on_task_cursor_changed(gpointer data)
 {
-	Todo * todo = data;
+	Auditor * auditor = data;
 
-	todo_task_cursor_changed(todo);
+	auditor_task_cursor_changed(auditor);
 }
 
 
-/* todo_on_task_done_toggled */
-static void _todo_on_task_done_toggled(GtkCellRendererToggle * renderer,
+/* auditor_on_task_done_toggled */
+static void _auditor_on_task_done_toggled(GtkCellRendererToggle * renderer,
 		gchar * path, gpointer data)
 {
-	Todo * todo = data;
+	Auditor * auditor = data;
 	GtkTreePath * treepath;
 	(void) renderer;
 
 	treepath = gtk_tree_path_new_from_string(path);
-	todo_task_toggle_done(todo, treepath);
+	auditor_task_toggle_done(auditor, treepath);
 	gtk_tree_path_free(treepath);
 }
 
 
-/* todo_on_task_priority_edited */
-static void _todo_on_task_priority_edited(GtkCellRendererText * renderer,
+/* auditor_on_task_priority_edited */
+static void _auditor_on_task_priority_edited(GtkCellRendererText * renderer,
 		gchar * path, gchar * priority, gpointer data)
 {
-	Todo * todo = data;
+	Auditor * auditor = data;
 	GtkTreePath * treepath;
 	(void) renderer;
 
 	treepath = gtk_tree_path_new_from_string(path);
-	todo_task_set_priority(todo, treepath, priority);
+	auditor_task_set_priority(auditor, treepath, priority);
 	gtk_tree_path_free(treepath);
 }
 
 
-/* todo_on_task_title_edited */
-static void _todo_on_task_title_edited(GtkCellRendererText * renderer,
+/* auditor_on_task_title_edited */
+static void _auditor_on_task_title_edited(GtkCellRendererText * renderer,
 		gchar * path, gchar * title, gpointer data)
 {
-	Todo * todo = data;
+	Auditor * auditor = data;
 	GtkTreePath * treepath;
 	(void) renderer;
 
 	treepath = gtk_tree_path_new_from_string(path);
-	todo_task_set_title(todo, treepath, title);
+	auditor_task_set_title(auditor, treepath, title);
 	gtk_tree_path_free(treepath);
 }
 
 
-/* todo_on_filter_view */
-static gboolean _todo_on_filter_view(GtkTreeModel * model, GtkTreeIter * iter,
-		gpointer data)
+/* auditor_on_filter_view */
+static gboolean _auditor_on_filter_view(GtkTreeModel * model,
+		GtkTreeIter * iter, gpointer data)
 {
-	Todo * todo = data;
+	Auditor * auditor = data;
 	gboolean done = FALSE;
 
-	switch(todo->filter_view)
+	switch(auditor->filter_view)
 	{
-		case TODO_VIEW_COMPLETED_TASKS:
+		case AUDITOR_VIEW_COMPLETED_TASKS:
 			gtk_tree_model_get(model, iter, TD_COL_DONE, &done, -1);
 			return done ? TRUE : FALSE;
-		case TODO_VIEW_REMAINING_TASKS:
+		case AUDITOR_VIEW_REMAINING_TASKS:
 			gtk_tree_model_get(model, iter, TD_COL_DONE, &done, -1);
 			return done ? FALSE : TRUE;
 		default:
-		case TODO_VIEW_ALL_TASKS:
+		case AUDITOR_VIEW_ALL_TASKS:
 			return TRUE;
 	}
 }

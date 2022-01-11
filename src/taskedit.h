@@ -1,6 +1,6 @@
 /* $Id$ */
 /* Copyright (c) 2010-2015 Pierre Pronchery <khorben@defora.org> */
-/* This file is part of DeforaOS Desktop Todo */
+/* This file is part of DeforaOS Desktop Auditor */
 /* All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -28,11 +28,11 @@
 
 
 
-#ifndef TODO_TASKEDIT_H
-# define TODO_TASKEDIT_H
+#ifndef AUDITOR_TASKEDIT_H
+# define AUDITOR_TASKEDIT_H
 
 # include "task.h"
-# include "todo.h"
+# include "auditor.h"
 
 
 /* TaskEdit */
@@ -41,7 +41,7 @@ typedef struct _TaskEdit TaskEdit;
 
 
 /* functions */
-TaskEdit * taskedit_new(Todo * todo, Task * task);
+TaskEdit * taskedit_new(Auditor * auditor, Task * task);
 void taskedit_delete(TaskEdit * taskedit);
 
-#endif /* !TODO_TASKEDIT_H */
+#endif /* !AUDITOR_TASKEDIT_H */

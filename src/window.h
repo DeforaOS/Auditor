@@ -1,6 +1,6 @@
 /* $Id$ */
 /* Copyright (c) 2012-2015 Pierre Pronchery <khorben@defora.org> */
-/* This file is part of DeforaOS Desktop Todo */
+/* This file is part of DeforaOS Desktop Auditor */
 /* All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -28,18 +28,18 @@
 
 
 
-#ifndef TODO_WINDOW_H
-# define TODO_WINDOW_H
+#ifndef AUDITOR_WINDOW_H
+# define AUDITOR_WINDOW_H
 
 
-/* TodoWindow */
+/* AuditorWindow */
 /* public */
 /* types */
-typedef struct _TodoWindow TodoWindow;
+typedef struct _AuditorWindow AuditorWindow;
 
 
 /* functions */
-TodoWindow * todowindow_new(void);
-void todowindow_delete(TodoWindow * todo);
+AuditorWindow * auditorwindow_new(void);
+void auditorwindow_delete(AuditorWindow * auditor);
 
-#endif /* !TODO_WINDOW_H */
+#endif /* !AUDITOR_WINDOW_H */

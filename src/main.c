@@ -1,6 +1,6 @@
 /* $Id$ */
 /* Copyright (c) 2009-2020 Pierre Pronchery <khorben@defora.org> */
-/* This file is part of DeforaOS Desktop Todo */
+/* This file is part of DeforaOS Desktop Auditor */
 /* All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -39,38 +39,38 @@
 #define _(string) gettext(string)
 
 /* constants */
-#ifndef PROGNAME_TODO
-# define PROGNAME_TODO	"todo"
+#ifndef PROGNAME_AUDITOR
+# define PROGNAME_AUDITOR	"auditor"
 #endif
 #ifndef PREFIX
-# define PREFIX		"/usr/local"
+# define PREFIX			"/usr/local"
 #endif
 #ifndef DATADIR
-# define DATADIR	PREFIX "/share"
+# define DATADIR		PREFIX "/share"
 #endif
 #ifndef LOCALEDIR
-# define LOCALEDIR	DATADIR "/locale"
+# define LOCALEDIR		DATADIR "/locale"
 #endif
 
 
 /* private */
 /* prototypes */
-static int _todo(void);
+static int _auditor(void);
 
 static int _error(char const * message, int ret);
 static int _usage(void);
 
 
 /* functions */
-/* todo */
-static int _todo(void)
+/* auditor */
+static int _auditor(void)
 {
-	TodoWindow * todo;
+	AuditorWindow * auditor;
 
-	if((todo = todowindow_new()) == NULL)
-		return error_print(PROGNAME_TODO);
+	if((auditor = auditorwindow_new()) == NULL)
+		return error_print(PROGNAME_AUDITOR);
 	gtk_main();
-	todowindow_delete(todo);
+	auditorwindow_delete(auditor);
 	return 0;
 }
 
@@ -78,7 +78,7 @@ static int _todo(void)
 /* error */
 static int _error(char const * message, int ret)
 {
-	fputs(PROGNAME_TODO ": ", stderr);
+	fputs(PROGNAME_AUDITOR ": ", stderr);
 	perror(message);
 	return ret;
 }
@@ -87,7 +87,7 @@ static int _error(char const * message, int ret)
 /* usage */
 static int _usage(void)
 {
-	fprintf(stderr, _("Usage: %s\n"), PROGNAME_TODO);
+	fprintf(stderr, _("Usage: %s\n"), PROGNAME_AUDITOR);
 	return 1;
 }
 
@@ -112,5 +112,5 @@ int main(int argc, char * argv[])
 		}
 	if(optind != argc)
 		return _usage();
-	return (_todo() == 0) ? 0 : 2;
+	return (_auditor() == 0) ? 0 : 2;
 }

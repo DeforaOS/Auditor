@@ -1,6 +1,6 @@
 /* $Id$ */
 /* Copyright (c) 2012-2020 Pierre Pronchery <khorben@defora.org> */
-/* This file is part of DeforaOS Desktop Todo */
+/* This file is part of DeforaOS Desktop Auditor */
 /* All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -37,19 +37,19 @@
 #include "../src/priority.c"
 #include "../src/task.c"
 #include "../src/taskedit.c"
-#include "../src/todo.c"
+#include "../src/auditor.c"
 
 
-/* Todo */
+/* Auditor */
 /* private */
 /* types */
-typedef struct _MailerPlugin TodoPlugin;
+typedef struct _MailerPlugin AuditorPlugin;
 
 struct _MailerPlugin
 {
 	MailerPluginHelper * helper;
 
-	Todo * todo;
+	Auditor * auditor;
 
 	/* widgets */
 	GtkWidget * widget;
@@ -60,9 +60,9 @@ struct _MailerPlugin
 /* protected */
 /* prototypes */
 /* plug-in */
-static MailerPlugin * _todo_init(MailerPluginHelper * helper);
-static void _todo_destroy(TodoPlugin * todo);
-static GtkWidget * _todo_get_widget(TodoPlugin * todo);
+static MailerPlugin * _auditor_init(MailerPluginHelper * helper);
+static void _auditor_destroy(AuditorPlugin * auditor);
+static GtkWidget * _auditor_get_widget(AuditorPlugin * auditor);
 
 
 /* public */
@@ -70,12 +70,12 @@ static GtkWidget * _todo_get_widget(TodoPlugin * todo);
 /* plug-in */
 MailerPluginDefinition plugin =
 {
-	"Todo",
-	"todo",
+	"Auditor",
+	"auditor",
 	NULL,
-	_todo_init,
-	_todo_destroy,
-	_todo_get_widget,
+	_auditor_init,
+	_auditor_destroy,
+	_auditor_get_widget,
 	NULL
 };
 
@@ -83,46 +83,46 @@ MailerPluginDefinition plugin =
 /* protected */
 /* functions */
 /* plug-in */
-/* todo_init */
-static MailerPlugin * _todo_init(MailerPluginHelper * helper)
+/* auditor_init */
+static MailerPlugin * _auditor_init(MailerPluginHelper * helper)
 {
-	TodoPlugin * todo;
+	AuditorPlugin * auditor;
 	GtkWidget * widget;
 	size_t i;
 
-	if((todo = malloc(sizeof(*todo))) == NULL)
+	if((auditor = malloc(sizeof(*auditor))) == NULL)
 		return NULL;
-	if((todo->todo = todo_new(NULL, NULL)) == NULL)
+	if((auditor->auditor = auditor_new(NULL, NULL)) == NULL)
 	{
-		_todo_destroy(todo);
+		_auditor_destroy(auditor);
 		return NULL;
 	}
-	todo->helper = helper;
-	todo->widget = gtk_box_new(GTK_ORIENTATION_VERTICAL, 4);
-	widget = todo_get_widget(todo->todo);
-	gtk_box_pack_start(GTK_BOX(todo->widget), widget, TRUE, TRUE, 0);
-	gtk_tree_view_set_headers_visible(GTK_TREE_VIEW(todo->todo->view),
+	auditor->helper = helper;
+	auditor->widget = gtk_box_new(GTK_ORIENTATION_VERTICAL, 4);
+	widget = auditor_get_widget(auditor->auditor);
+	gtk_box_pack_start(GTK_BOX(auditor->widget), widget, TRUE, TRUE, 0);
+	gtk_tree_view_set_headers_visible(GTK_TREE_VIEW(auditor->auditor->view),
 			FALSE);
 	for(i = 0; i < TD_COL_COUNT; i++)
-		if(todo->todo->columns[i] != NULL && i != TD_COL_TITLE)
-			gtk_tree_view_column_set_visible(todo->todo->columns[i],
+		if(auditor->auditor->columns[i] != NULL && i != TD_COL_TITLE)
+			gtk_tree_view_column_set_visible(auditor->auditor->columns[i],
 					FALSE);
-	gtk_widget_show_all(todo->widget);
-	return todo;
+	gtk_widget_show_all(auditor->widget);
+	return auditor;
 }
 
 
-/* todo_destroy */
-static void _todo_destroy(TodoPlugin * todo)
+/* auditor_destroy */
+static void _auditor_destroy(AuditorPlugin * auditor)
 {
-	if(todo->todo != NULL)
-		todo_delete(todo->todo);
-	free(todo);
+	if(auditor->auditor != NULL)
+		auditor_delete(auditor->auditor);
+	free(auditor);
 }
 
 
-/* todo_get_widget */
-static GtkWidget * _todo_get_widget(TodoPlugin * todo)
+/* auditor_get_widget */
+static GtkWidget * _auditor_get_widget(AuditorPlugin * auditor)
 {
-	return todo->widget;
+	return auditor->widget;
 }

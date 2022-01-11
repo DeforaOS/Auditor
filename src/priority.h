@@ -1,6 +1,6 @@
 /* $Id$ */
 /* Copyright (c) 2015 Pierre Pronchery <khorben@defora.org> */
-/* This file is part of DeforaOS Desktop Todo */
+/* This file is part of DeforaOS Desktop Auditor */
 /* All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -28,21 +28,21 @@
 
 
 
-#ifndef TODO_PRIORITY_H
-# define TODO_PRIORITY_H
+#ifndef AUDITOR_PRIORITY_H
+# define AUDITOR_PRIORITY_H
 
-# include "todo.h"
+# include "auditor.h"
 
 
 /* types */
 typedef struct
 {
-	TodoPriority priority;
+	AuditorPriority priority;
 	char const * title;
-} TodoPriorityTitle;
+} AuditorPriorityTitle;
 
 
 /* variables */
-extern TodoPriorityTitle priorities[];
+extern AuditorPriorityTitle priorities[];
 
-#endif /* !TODO_PRIORITY_H */
+#endif /* !AUDITOR_PRIORITY_H */

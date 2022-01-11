@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Todo 0.1.2\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2020-01-31 01:18+0100\n"
+"POT-Creation-Date: 2022-01-11 04:46+0100\n"
 "PO-Revision-Date: 2015-04-21 00:54+0200\n"
 "Last-Translator: Ana Carolina Rocha <carolina@defora.org>\n"
 "Language-Team: Spanish\n"
@@ -15,6 +15,90 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#: ../src/auditor.c:130
+msgid "Done"
+msgstr "Listo"
+
+#: ../src/auditor.c:132
+msgid "Title"
+msgstr "Título"
+
+#: ../src/auditor.c:134
+msgid "Beginning"
+msgstr "Comienzo"
+
+#: ../src/auditor.c:135
+msgid "Completion"
+msgstr "Terminación"
+
+#: ../src/auditor.c:149 ../src/auditor.c:477
+msgid "New task"
+msgstr "Nueva tarea"
+
+#: ../src/auditor.c:150
+msgid "Edit task"
+msgstr "Editar tarea"
+
+#: ../src/auditor.c:154 ../src/auditor.c:157
+msgid "Select all"
+msgstr "Seleccionar todo"
+
+#: ../src/auditor.c:160
+msgid "Delete task"
+msgstr "Eliminar tarea"
+
+#: ../src/auditor.c:164
+msgid "Preferences"
+msgstr "Preferencias"
+
+#: ../src/auditor.c:195
+msgid "View..."
+msgstr "Vista..."
+
+#: ../src/auditor.c:199
+msgid "All tasks"
+msgstr "Todas las tareas"
+
+#: ../src/auditor.c:203
+msgid "Completed tasks"
+msgstr "Tarea finalizada"
+
+#: ../src/auditor.c:207
+msgid "Remaining tasks"
+msgstr "Tareas restantes"
+
+#: ../src/auditor.c:316
+msgid "Priority"
+msgstr "Prioridad"
+
+#: ../src/auditor.c:386
+msgid "TODO-list manager for the DeforaOS desktop"
+msgstr ""
+
+#: ../src/auditor.c:392
+msgid "translator-credits"
+msgstr "Ana Carolina Rocha <carolina@defora.org>"
+
+#: ../src/auditor.c:423 ../src/auditor.c:428
+msgid "Error"
+msgstr "Error"
+
+#: ../src/auditor.c:530
+msgid "Are you sure you want to delete the selected task(s)?"
+msgstr "Está seguro que desea eliminar la(s) tarea(s) seleccionada(s)?"
+
+#: ../src/auditor.c:619
+msgid "Time: "
+msgstr "Tiempo: "
+
+#: ../src/auditor.c:628 ../src/auditor.c:637
+msgid ":"
+msgstr ":"
+
+#: ../src/auditor.c:1005 ../src/auditor.c:1010
+msgid "Question"
+msgstr "Pregunta"
 
 #: ../src/main.c:90
 #, c-format
@@ -56,90 +140,6 @@ msgstr "Prioridad"
 #: ../src/taskedit.c:130
 msgid "Description:"
 msgstr "Descripción:"
-
-#: ../src/todo.c:130
-msgid "Done"
-msgstr "Listo"
-
-#: ../src/todo.c:132
-msgid "Title"
-msgstr "Título"
-
-#: ../src/todo.c:134
-msgid "Beginning"
-msgstr "Comienzo"
-
-#: ../src/todo.c:135
-msgid "Completion"
-msgstr "Terminación"
-
-#: ../src/todo.c:149 ../src/todo.c:477
-msgid "New task"
-msgstr "Nueva tarea"
-
-#: ../src/todo.c:150
-msgid "Edit task"
-msgstr "Editar tarea"
-
-#: ../src/todo.c:154 ../src/todo.c:157
-msgid "Select all"
-msgstr "Seleccionar todo"
-
-#: ../src/todo.c:160
-msgid "Delete task"
-msgstr "Eliminar tarea"
-
-#: ../src/todo.c:164
-msgid "Preferences"
-msgstr "Preferencias"
-
-#: ../src/todo.c:195
-msgid "View..."
-msgstr "Vista..."
-
-#: ../src/todo.c:199
-msgid "All tasks"
-msgstr "Todas las tareas"
-
-#: ../src/todo.c:203
-msgid "Completed tasks"
-msgstr "Tarea finalizada"
-
-#: ../src/todo.c:207
-msgid "Remaining tasks"
-msgstr "Tareas restantes"
-
-#: ../src/todo.c:316
-msgid "Priority"
-msgstr "Prioridad"
-
-#: ../src/todo.c:386
-msgid "TODO-list manager for the DeforaOS desktop"
-msgstr "TODO-administrador de listas para el escritorio de DeforaOS"
-
-#: ../src/todo.c:392
-msgid "translator-credits"
-msgstr "Ana Carolina Rocha <carolina@defora.org>"
-
-#: ../src/todo.c:423 ../src/todo.c:428
-msgid "Error"
-msgstr "Error"
-
-#: ../src/todo.c:530
-msgid "Are you sure you want to delete the selected task(s)?"
-msgstr "Está seguro que desea eliminar la(s) tarea(s) seleccionada(s)?"
-
-#: ../src/todo.c:619
-msgid "Time: "
-msgstr "Tiempo: "
-
-#: ../src/todo.c:628 ../src/todo.c:637
-msgid ":"
-msgstr ":"
-
-#: ../src/todo.c:1005 ../src/todo.c:1010
-msgid "Question"
-msgstr "Pregunta"
 
 #: ../src/window.c:107
 msgid "_New"

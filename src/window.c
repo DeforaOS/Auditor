@@ -1,6 +1,6 @@
 /* $Id$ */
 /* Copyright (c) 2012-2022 Pierre Pronchery <khorben@defora.org> */
-/* This file is part of DeforaOS Desktop Todo */
+/* This file is part of DeforaOS Desktop Auditor */
 /* All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -33,23 +33,23 @@
 #include <gtk/gtk.h>
 #include <gdk/gdkkeysyms.h>
 #include <Desktop.h>
-#include "todo.h"
+#include "auditor.h"
 #include "window.h"
 #include "../config.h"
 #define _(string) gettext(string)
 #define N_(string) (string)
 
-#ifndef PROGNAME_TODO
-# define PROGNAME_TODO	"todo"
+#ifndef PROGNAME_AUDITOR
+# define PROGNAME_AUDITOR	"auditor"
 #endif
 
 
-/* TodoWindow */
+/* AuditorWindow */
 /* private */
 /* types */
-struct _TodoWindow
+struct _AuditorWindow
 {
-	Todo * todo;
+	Auditor * auditor;
 
 	/* widgets */
 	GtkWidget * window;
@@ -59,43 +59,43 @@ struct _TodoWindow
 
 /* prototypes */
 /* callbacks */
-static void _todowindow_on_close(gpointer data);
-static gboolean _todowindow_on_closex(gpointer data);
-static void _todowindow_on_edit(gpointer data);
-static void _todowindow_on_new(gpointer data);
-static void _todowindow_on_preferences(gpointer data);
+static void _auditorwindow_on_close(gpointer data);
+static gboolean _auditorwindow_on_closex(gpointer data);
+static void _auditorwindow_on_edit(gpointer data);
+static void _auditorwindow_on_new(gpointer data);
+static void _auditorwindow_on_preferences(gpointer data);
 
 #ifndef EMBEDDED
 /* menus */
 /* file menu */
-static void _todowindow_on_file_new(gpointer data);
-static void _todowindow_on_file_edit(gpointer data);
-static void _todowindow_on_file_close(gpointer data);
+static void _auditorwindow_on_file_new(gpointer data);
+static void _auditorwindow_on_file_edit(gpointer data);
+static void _auditorwindow_on_file_close(gpointer data);
 
 /* edit menu */
-static void _todowindow_on_edit_select_all(gpointer data);
-static void _todowindow_on_edit_delete(gpointer data);
-static void _todowindow_on_edit_preferences(gpointer data);
+static void _auditorwindow_on_edit_select_all(gpointer data);
+static void _auditorwindow_on_edit_delete(gpointer data);
+static void _auditorwindow_on_edit_preferences(gpointer data);
 
 /* view menu */
-static void _todowindow_on_view_all_tasks(gpointer data);
-static void _todowindow_on_view_completed_tasks(gpointer data);
-static void _todowindow_on_view_remaining_tasks(gpointer data);
+static void _auditorwindow_on_view_all_tasks(gpointer data);
+static void _auditorwindow_on_view_completed_tasks(gpointer data);
+static void _auditorwindow_on_view_remaining_tasks(gpointer data);
 
 /* help menu */
-static void _todowindow_on_help_about(gpointer data);
-static void _todowindow_on_help_contents(gpointer data);
+static void _auditorwindow_on_help_about(gpointer data);
+static void _auditorwindow_on_help_contents(gpointer data);
 #endif
 
 /* constants */
 /* accelerators */
-static const DesktopAccel _todo_accel[] =
+static const DesktopAccel _auditor_accel[] =
 {
 #ifdef EMBEDDED
-	{ G_CALLBACK(_todowindow_on_close), GDK_CONTROL_MASK, GDK_KEY_W },
-	{ G_CALLBACK(_todowindow_on_edit), GDK_CONTROL_MASK, GDK_KEY_E },
-	{ G_CALLBACK(_todowindow_on_new), GDK_CONTROL_MASK, GDK_KEY_N },
-	{ G_CALLBACK(_todowindow_on_preferences), GDK_CONTROL_MASK, GDK_KEY_P },
+	{ G_CALLBACK(_auditorwindow_on_close), GDK_CONTROL_MASK, GDK_KEY_W },
+	{ G_CALLBACK(_auditorwindow_on_edit), GDK_CONTROL_MASK, GDK_KEY_E },
+	{ G_CALLBACK(_auditorwindow_on_new), GDK_CONTROL_MASK, GDK_KEY_N },
+	{ G_CALLBACK(_auditorwindow_on_preferences), GDK_CONTROL_MASK, GDK_KEY_P },
 #endif
 	{ NULL, 0, 0 }
 };
@@ -104,18 +104,18 @@ static const DesktopAccel _todo_accel[] =
 /* menubar */
 static const DesktopMenu _file_menu[] =
 {
-	{ N_("_New"), G_CALLBACK(_todowindow_on_file_new), GTK_STOCK_NEW,
+	{ N_("_New"), G_CALLBACK(_auditorwindow_on_file_new), GTK_STOCK_NEW,
 		GDK_CONTROL_MASK, GDK_KEY_N },
-	{ N_("_Edit"), G_CALLBACK(_todowindow_on_file_edit), GTK_STOCK_EDIT,
+	{ N_("_Edit"), G_CALLBACK(_auditorwindow_on_file_edit), GTK_STOCK_EDIT,
 		GDK_CONTROL_MASK, GDK_KEY_E },
 	{ "", NULL, NULL, 0, 0 },
-	{ N_("_Close"), G_CALLBACK(_todowindow_on_file_close), GTK_STOCK_CLOSE,
+	{ N_("_Close"), G_CALLBACK(_auditorwindow_on_file_close), GTK_STOCK_CLOSE,
 		GDK_CONTROL_MASK, GDK_KEY_W },
 	{ NULL, NULL, NULL, 0, 0 }
 };
 static const DesktopMenu _edit_menu[] =
 {
-	{ N_("Select _All"), G_CALLBACK(_todowindow_on_edit_select_all),
+	{ N_("Select _All"), G_CALLBACK(_auditorwindow_on_edit_select_all),
 #if GTK_CHECK_VERSION(2, 10, 0)
 		GTK_STOCK_SELECT_ALL,
 #else
@@ -123,28 +123,28 @@ static const DesktopMenu _edit_menu[] =
 #endif
 		GDK_CONTROL_MASK, GDK_KEY_A },
 	{ "", NULL, NULL, 0, 0 },
-	{ N_("_Delete"), G_CALLBACK(_todowindow_on_edit_delete),
+	{ N_("_Delete"), G_CALLBACK(_auditorwindow_on_edit_delete),
 		GTK_STOCK_DELETE, 0, 0 },
 	{ "", NULL, NULL, 0, 0 },
-	{ N_("_Preferences"), G_CALLBACK(_todowindow_on_edit_preferences),
+	{ N_("_Preferences"), G_CALLBACK(_auditorwindow_on_edit_preferences),
 		GTK_STOCK_PREFERENCES, GDK_CONTROL_MASK, GDK_KEY_P },
 	{ NULL, NULL, NULL, 0, 0 }
 };
 static const DesktopMenu _view_menu[] =
 {
-	{ N_("_All tasks"), G_CALLBACK(_todowindow_on_view_all_tasks), NULL, 0,
+	{ N_("_All tasks"), G_CALLBACK(_auditorwindow_on_view_all_tasks), NULL, 0,
 		0 },
 	{ N_("_Completed tasks"), G_CALLBACK(
-			_todowindow_on_view_completed_tasks), NULL, 0, 0 },
+			_auditorwindow_on_view_completed_tasks), NULL, 0, 0 },
 	{ N_("_Remaining tasks"), G_CALLBACK(
-			_todowindow_on_view_remaining_tasks), NULL, 0, 0 },
+			_auditorwindow_on_view_remaining_tasks), NULL, 0, 0 },
 	{ NULL, NULL, NULL, 0, 0 }
 };
 static const DesktopMenu _help_menu[] =
 {
-	{ N_("_Contents"), G_CALLBACK(_todowindow_on_help_contents),
+	{ N_("_Contents"), G_CALLBACK(_auditorwindow_on_help_contents),
 		"help-contents", 0, GDK_KEY_F1 },
-	{ N_("_About"), G_CALLBACK(_todowindow_on_help_about),
+	{ N_("_About"), G_CALLBACK(_auditorwindow_on_help_about),
 #if GTK_CHECK_VERSION(2, 6, 0)
 		GTK_STOCK_ABOUT, 0, 0 },
 #else
@@ -165,211 +165,211 @@ static const DesktopMenubar _menubar[] =
 
 /* public */
 /* functions */
-/* todowindow_new */
-TodoWindow * todowindow_new(void)
+/* auditorwindow_new */
+AuditorWindow * auditorwindow_new(void)
 {
-	TodoWindow * todo;
+	AuditorWindow * auditor;
 	GtkAccelGroup * group;
 	GtkWidget * vbox;
 	GtkWidget * widget;
 
-	if((todo = malloc(sizeof(*todo))) == NULL)
+	if((auditor = malloc(sizeof(*auditor))) == NULL)
 		return NULL;
-	todo->window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
+	auditor->window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
 	group = gtk_accel_group_new();
-	todo->todo = todo_new(todo->window, group);
+	auditor->auditor = auditor_new(auditor->window, group);
 	/* check for errors */
-	if(todo->todo == NULL)
+	if(auditor->auditor == NULL)
 	{
-		todowindow_delete(todo);
+		auditorwindow_delete(auditor);
 		g_object_unref(group);
 		return NULL;
 	}
-	desktop_accel_create(_todo_accel, todo, group);
-	gtk_window_add_accel_group(GTK_WINDOW(todo->window), group);
+	desktop_accel_create(_auditor_accel, auditor, group);
+	gtk_window_add_accel_group(GTK_WINDOW(auditor->window), group);
 	g_object_unref(group);
-	gtk_window_set_default_size(GTK_WINDOW(todo->window), 640, 480);
+	gtk_window_set_default_size(GTK_WINDOW(auditor->window), 640, 480);
 #if GTK_CHECK_VERSION(2, 6, 0)
-	gtk_window_set_icon_name(GTK_WINDOW(todo->window), "todo");
+	gtk_window_set_icon_name(GTK_WINDOW(auditor->window), "auditor");
 #endif
-	gtk_window_set_title(GTK_WINDOW(todo->window), _("Todo"));
-	g_signal_connect_swapped(todo->window, "delete-event", G_CALLBACK(
-				_todowindow_on_closex), todo);
+	gtk_window_set_title(GTK_WINDOW(auditor->window), _("Auditor"));
+	g_signal_connect_swapped(auditor->window, "delete-event", G_CALLBACK(
+				_auditorwindow_on_closex), auditor);
 	vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
 #ifndef EMBEDDED
 	/* menubar */
-	widget = desktop_menubar_create(_menubar, todo, group);
+	widget = desktop_menubar_create(_menubar, auditor, group);
 	gtk_box_pack_start(GTK_BOX(vbox), widget, FALSE, TRUE, 0);
 #endif
-	widget = todo_get_widget(todo->todo);
+	widget = auditor_get_widget(auditor->auditor);
 	gtk_box_pack_start(GTK_BOX(vbox), widget, TRUE, TRUE, 0);
 	/* statusbar */
-	todo->statusbar = gtk_statusbar_new();
-	gtk_box_pack_start(GTK_BOX(vbox), todo->statusbar, FALSE, TRUE, 0);
-	gtk_container_add(GTK_CONTAINER(todo->window), vbox);
-	gtk_widget_show_all(todo->window);
-	return todo;
+	auditor->statusbar = gtk_statusbar_new();
+	gtk_box_pack_start(GTK_BOX(vbox), auditor->statusbar, FALSE, TRUE, 0);
+	gtk_container_add(GTK_CONTAINER(auditor->window), vbox);
+	gtk_widget_show_all(auditor->window);
+	return auditor;
 }
 
 
-/* todowindow_delete */
-void todowindow_delete(TodoWindow * todo)
+/* auditorwindow_delete */
+void auditorwindow_delete(AuditorWindow * auditor)
 {
-	if(todo->todo != NULL)
-		todo_delete(todo->todo);
-	gtk_widget_destroy(todo->window);
-	free(todo);
+	if(auditor->auditor != NULL)
+		auditor_delete(auditor->auditor);
+	gtk_widget_destroy(auditor->window);
+	free(auditor);
 }
 
 
 /* private */
 /* functions */
 /* callbacks */
-/* todowindow_on_close */
-static void _todowindow_on_close(gpointer data)
+/* auditorwindow_on_close */
+static void _auditorwindow_on_close(gpointer data)
 {
-	TodoWindow * todo = data;
+	AuditorWindow * auditor = data;
 
-	_todowindow_on_closex(todo);
+	_auditorwindow_on_closex(auditor);
 }
 
 
-/* todowindow_on_closex */
-static gboolean _todowindow_on_closex(gpointer data)
+/* auditorwindow_on_closex */
+static gboolean _auditorwindow_on_closex(gpointer data)
 {
-	TodoWindow * todo = data;
+	AuditorWindow * auditor = data;
 
-	gtk_widget_hide(todo->window);
+	gtk_widget_hide(auditor->window);
 	gtk_main_quit();
 	return TRUE;
 }
 
 
-/* todowindow_on_edit */
-static void _todowindow_on_edit(gpointer data)
+/* auditorwindow_on_edit */
+static void _auditorwindow_on_edit(gpointer data)
 {
-	TodoWindow * todo = data;
+	AuditorWindow * auditor = data;
 
-	todo_task_edit(todo->todo);
+	auditor_task_edit(auditor->auditor);
 }
 
 
-/* todowindow_on_new */
-static void _todowindow_on_new(gpointer data)
+/* auditorwindow_on_new */
+static void _auditorwindow_on_new(gpointer data)
 {
-	TodoWindow * todo = data;
+	AuditorWindow * auditor = data;
 
-	todo_task_add(todo->todo, NULL);
+	auditor_task_add(auditor->auditor, NULL);
 }
 
 
-/* todowindow_on_preferences */
-static void _todowindow_on_preferences(gpointer data)
+/* auditorwindow_on_preferences */
+static void _auditorwindow_on_preferences(gpointer data)
 {
-	TodoWindow * todo = data;
+	AuditorWindow * auditor = data;
 
-	todo_show_preferences(todo->todo, TRUE);
+	auditor_show_preferences(auditor->auditor, TRUE);
 }
 
 
 #ifndef EMBEDDED
 /* file menu */
-/* todowindow_on_file_close */
-static void _todowindow_on_file_close(gpointer data)
+/* auditorwindow_on_file_close */
+static void _auditorwindow_on_file_close(gpointer data)
 {
-	TodoWindow * todo = data;
+	AuditorWindow * auditor = data;
 
-	_todowindow_on_close(todo);
+	_auditorwindow_on_close(auditor);
 }
 
 
-/* todowindow_on_file_edit */
-static void _todowindow_on_file_edit(gpointer data)
+/* auditorwindow_on_file_edit */
+static void _auditorwindow_on_file_edit(gpointer data)
 {
-	TodoWindow * todo = data;
+	AuditorWindow * auditor = data;
 
-	_todowindow_on_edit(todo);
+	_auditorwindow_on_edit(auditor);
 }
 
 
-/* todowindow_on_file_new */
-static void _todowindow_on_file_new(gpointer data)
+/* auditorwindow_on_file_new */
+static void _auditorwindow_on_file_new(gpointer data)
 {
-	TodoWindow * todo = data;
+	AuditorWindow * auditor = data;
 
-	_todowindow_on_new(todo);
+	_auditorwindow_on_new(auditor);
 }
 
 
 /* edit menu */
-/* todowindow_on_edit_delete */
-static void _todowindow_on_edit_delete(gpointer data)
+/* auditorwindow_on_edit_delete */
+static void _auditorwindow_on_edit_delete(gpointer data)
 {
-	TodoWindow * todo = data;
+	AuditorWindow * auditor = data;
 
-	todo_task_delete_selected(todo->todo);
+	auditor_task_delete_selected(auditor->auditor);
 }
 
 
-/* todowindow_on_edit_preferences */
-static void _todowindow_on_edit_preferences(gpointer data)
+/* auditorwindow_on_edit_preferences */
+static void _auditorwindow_on_edit_preferences(gpointer data)
 {
-	TodoWindow * todo = data;
+	AuditorWindow * auditor = data;
 
-	_todowindow_on_preferences(todo);
+	_auditorwindow_on_preferences(auditor);
 }
 
 
-/* todowindow_on_edit_select_all */
-static void _todowindow_on_edit_select_all(gpointer data)
+/* auditorwindow_on_edit_select_all */
+static void _auditorwindow_on_edit_select_all(gpointer data)
 {
-	TodoWindow * todo = data;
+	AuditorWindow * auditor = data;
 
-	todo_task_select_all(todo->todo);
+	auditor_task_select_all(auditor->auditor);
 }
 
 
 /* view menu */
-/* todowindow_on_view_all_tasks */
-static void _todowindow_on_view_all_tasks(gpointer data)
+/* auditorwindow_on_view_all_tasks */
+static void _auditorwindow_on_view_all_tasks(gpointer data)
 {
-	TodoWindow * todo = data;
+	AuditorWindow * auditor = data;
 
-	todo_set_view(todo->todo, TODO_VIEW_ALL_TASKS);
+	auditor_set_view(auditor->auditor, AUDITOR_VIEW_ALL_TASKS);
 }
 
 
-/* todowindow_on_view_completed_tasks */
-static void _todowindow_on_view_completed_tasks(gpointer data)
+/* auditorwindow_on_view_completed_tasks */
+static void _auditorwindow_on_view_completed_tasks(gpointer data)
 {
-	TodoWindow * todo = data;
+	AuditorWindow * auditor = data;
 
-	todo_set_view(todo->todo, TODO_VIEW_COMPLETED_TASKS);
+	auditor_set_view(auditor->auditor, AUDITOR_VIEW_COMPLETED_TASKS);
 }
 
 
-/* todowindow_on_view_remaining_tasks */
-static void _todowindow_on_view_remaining_tasks(gpointer data)
+/* auditorwindow_on_view_remaining_tasks */
+static void _auditorwindow_on_view_remaining_tasks(gpointer data)
 {
-	TodoWindow * todo = data;
+	AuditorWindow * auditor = data;
 
-	todo_set_view(todo->todo, TODO_VIEW_REMAINING_TASKS);
+	auditor_set_view(auditor->auditor, AUDITOR_VIEW_REMAINING_TASKS);
 }
 
 
 /* help menu */
-/* todowindow_on_help_about */
-static void _todowindow_on_help_about(gpointer data)
+/* auditorwindow_on_help_about */
+static void _auditorwindow_on_help_about(gpointer data)
 {
-	TodoWindow * todo = data;
+	AuditorWindow * auditor = data;
 
-	todo_about(todo->todo);
+	auditor_about(auditor->auditor);
 }
 
 
-/* todowindow_on_help_contents */
-static void _todowindow_on_help_contents(gpointer data)
+/* auditorwindow_on_help_contents */
+static void _auditorwindow_on_help_contents(gpointer data)
 {
-	desktop_help_contents(PACKAGE, PROGNAME_TODO);
+	desktop_help_contents(PACKAGE, PROGNAME_AUDITOR);
 }
 #endif

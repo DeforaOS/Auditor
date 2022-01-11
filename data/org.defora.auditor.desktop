@@ -1,0 +1,10 @@
+[Desktop Entry]
+Name=DeforaOS Auditor
+GenericName=Audit reporting
+Comment=Log manager for auditors
+TryExec=auditor
+Exec=auditor
+Icon=auditor
+Type=Application
+Categories=Development;GTK;
+StartupNotify=true

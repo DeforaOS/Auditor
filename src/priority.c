@@ -33,12 +33,12 @@
 
 
 /* variables */
-TodoPriorityTitle priorities[] =
+AuditorPriorityTitle priorities[] =
 {
-	{ TODO_PRIORITY_UNKNOWN,N_("Unknown")	},
-	{ TODO_PRIORITY_LOW,	N_("Low")	},
-	{ TODO_PRIORITY_MEDIUM,	N_("Medium")	},
-	{ TODO_PRIORITY_HIGH,	N_("High")	},
-	{ TODO_PRIORITY_URGENT,	N_("Urgent")	},
-	{ 0,			NULL		}
+	{ AUDITOR_PRIORITY_UNKNOWN,	N_("Unknown")	},
+	{ AUDITOR_PRIORITY_LOW,		N_("Low")	},
+	{ AUDITOR_PRIORITY_MEDIUM,	N_("Medium")	},
+	{ AUDITOR_PRIORITY_HIGH,	N_("High")	},
+	{ AUDITOR_PRIORITY_URGENT,	N_("Urgent")	},
+	{ 0,				NULL		}
 };

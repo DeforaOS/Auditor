@@ -1,6 +1,6 @@
 /* $Id$ */
 /* Copyright (c) 2010-2016 Pierre Pronchery <khorben@defora.org> */
-/* This file is part of DeforaOS Desktop Todo */
+/* This file is part of DeforaOS Desktop Auditor */
 /* All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -42,7 +42,7 @@
 /* types */
 struct _TaskEdit
 {
-	Todo * todo;
+	Auditor * auditor;
 	Task * task;
 
 	/* widgets */
@@ -59,7 +59,7 @@ struct _TaskEdit
 static void _on_taskedit_cancel(gpointer data);
 static void _on_taskedit_ok(gpointer data);
 
-TaskEdit * taskedit_new(Todo * todo, Task * task)
+TaskEdit * taskedit_new(Auditor * auditor, Task * task)
 {
 	TaskEdit * taskedit;
 	char buf[80];
@@ -75,7 +75,7 @@ TaskEdit * taskedit_new(Todo * todo, Task * task)
 
 	if((taskedit = malloc(sizeof(*taskedit))) == NULL)
 		return NULL;
-	taskedit->todo = todo;
+	taskedit->auditor = auditor;
 	taskedit->task = task;
 	taskedit->window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
 	snprintf(buf, sizeof(buf), "%s%s", _("Edit task: "), task_get_title(
@@ -192,7 +192,7 @@ static void _on_taskedit_ok(gpointer data)
 	task_set_description(taskedit->task, description);
 	g_free(description);
 	task_save(taskedit->task);
-	todo_task_reload_all(taskedit->todo); /* XXX violent solution */
+	auditor_task_reload_all(taskedit->auditor); /* XXX violent solution */
 	_on_taskedit_cancel(taskedit);
 }
 
